@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>線上展覽介紹：第八屆MATA獎</title>
+    
+    <!-- 引入 React 和 Tailwind (透過 CDN) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #050505; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+        #root { width: 100%; height: 100%; }
+        /* 視角設定 */
+        .perspective-container { perspective: 1000px; perspective-origin: 50% 50%; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        .preserve-3d { transform-style: preserve-3d; width: 100%; height: 100%; position: relative; }
+        ::-webkit-scrollbar { display: none; }
+        .select-none { user-select: none; -webkit-user-select: none; }
+        
+        /* 卡片互動 - 強制指標 */
+        .card-item {
+            transition: all 0.3s ease;
+            cursor: pointer !important; /* 強制顯示手指 */
+            border-color: rgba(255, 255, 255, 0.2); /* 預設淡白邊框 */
+        }
+        /* ★★★ 修改：選取/懸停時改為白色發光 ★★★ */
+        .card-item:hover {
+            box-shadow: 0 0 60px rgba(255, 255, 255, 0.6); /* 白光 */
+            border-color: #ffffff; /* 白色邊框 */
+            transform: scale(1.05);
+            z-index: 1000;
+        }
+        img, video { -webkit-user-drag: none; }
+
+        /* 導航按鈕樣式 - 固定在螢幕兩側 */
+        .nav-btn {
+            transition: all 0.2s;
+            opacity: 0.6;
+            cursor: pointer;
+            z-index: 200; 
+        }
+        .nav-btn:hover {
+            opacity: 1;
+            transform: scale(1.1);
+            background-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3); /* 按鈕也改白光 */
+        }
+        .nav-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        const galleryContent = [
+            {
+                image: "01.png", 
+                title: "第八屆 MATA獎－110年大專校院學生原住民族主題影音競賽",
+                desc: `「MATA」，意指「眼睛」，為原住民族語的羅馬拼音，期待透過同學們的觀察感知，拍攝紀録原住民族的特色文化，以及生活故事，藉此讓更多人理解，並尊重這難能可貴的文化。`,
+                detail: `「MATA」，意指「眼睛」，為原住民族語的羅馬拼音，期待透過同學們的觀察感知，拍攝紀録原住民族的特色文化，以及生活故事，藉此讓更多人理解，並尊重這難能可貴的文化。
+
+以「看見X傳承」為競賽方向，透過大專學生們的作品，集合原住民族的部落文化丶語言丶生活故事的關懷，讓本屆的競賽不單單只是影像作品的良性競爭，更是對原鄉文化的發掘，以及傳承。
+
+教育部為鼓勵全國大專學生主動關懷原住民族議題，並考量新媒體世代對於圖像影音與電腦語言的吸收、認同與掌握的能力普遍良好，爰自103年起辦理「MATA獎」競賽活動。
+
+以「MATA」為名稱，主要有二層意義，MATA，在南島語系中意為「眼睛」，此為第一層意義，許多原住民族部落有象徵祖靈之眼的眼睛作為圖騰觀視族人、守護族人；第二層意義即延續眼睛的意涵，鼓勵學生透過鏡頭訴說原住民族語言、族群文化的故事，用故事感動人心。
+
+本次展覽為2021年第八屆得獎作品的巡迴影展，也是MATA獎首次舉辦線上展覽。`
+            },
+            {
+                image: "02.png", 
+                title: "參觀方式介紹",
+                desc: "進入展覽後，右方跳出了參觀方式介紹",
+                detail: "進入展覽後，右方跳出了參觀方式介紹。可以使用滑鼠旋轉視角，使用方向鍵進行移動。"
+            },
+            {
+                image: "03.mp4", 
+                title: "環場影片",
+                desc: "展場整體是個明亮、整潔的展覽空間，讓人能夠將視覺鎖定在展品上面。",
+                detail: `展場整體是個明亮、整潔的展覽空間，讓人能夠將視覺鎖定在展品上面。動線自然，且讓人感覺靜謐舒適。與其他線上展覽在旋轉視角時是使用「讓畫面變形以達成旋轉視角的目的」的方式或在線下展覽以全景相機拍攝的呈現方式不同，MATA的線上展覽似乎是直接建立了一個參展空間，既避免了前前述畫面變形造成的眩暈感，也避免了前述全景相機造成的模糊失真，更加沉浸。`
+            },
+            {
+                image: "04.mp4", 
+                title: "MATA獎開場影片",
+                desc: "在進入展覽後，影展招牌的隔壁就是開場影片，以及MATA獎的簡介。",
+                detail: "在進入展覽後，影展招牌的隔壁就是開場影片，以及MATA獎的簡介。就如同我們實際線下觀展時入口處通常有該展覽的介紹一樣，更增加臨場感。"
+            },
+            {
+                image: "05.mp4", 
+                title: "槍砲、頭顱與骸骨──作品展出演示",
+                desc: "MATA獎的作品動輒十數分鐘，故無法一一展示。MATA獎作品的展示方式如影片所示，",
+                detail: "MATA獎的作品動輒十數分鐘，故無法一一展示。MATA獎作品的展示方式如影片所示，點擊欲觀賞的作品後鏡頭便會滑向該作品，放大。可以點擊右上角的連結前往作品的youtobe網址，也可以就如同線下觀展一樣「佇立」在作品前觀賞。"
+            },
+            {
+                image: "06.mp4", 
+                title: "歷屆得獎作品",
+                desc: "在動線盡頭的位置，有三個可能被忽視的小互動區域。",
+                detail: "在動線盡頭的位置，有三個可能被忽視的小互動區域。這個貼紙將觀眾引導至歷屆得獎作品。"
+            },
+            {
+                image: "07.mp4", 
+                title: "回饋表單",
+                desc: "在動線盡頭的位置，有三個可能被忽視的小互動區域。",
+                detail: "在動線盡頭的位置，有三個可能被忽視的小互動區域。這個貼紙將觀眾引導至回饋表單填寫。"
+            },
+            {
+                image: "08.mp4", 
+                title: "第八屆MATA獎資訊",
+                desc: "在動線盡頭的位置，有三個可能被忽視的小互動區域。",
+                detail: "在動線盡頭的位置，有三個可能被忽視的小互動區域。這個貼紙將觀眾引導至第八屆MATA獎資訊。"
+            },
+            {
+                image: "09.png", 
+                title: "線上展覽網站介紹",
+                desc: "ARTOGO是一個線上觀展平台，2021年4月設立。在ARTOGO網站「關於我們」的頁面",
+                detail: "ARTOGO是一個線上觀展平台，2021年4月設立。在ARTOGO網站「關於我們」的頁面中他們提及「文化應該被更廣泛地觸及與理解，不是少數人的特權，而是多數人的日常。」展覽通常以線下、實體為主，然而時間、地點等現實因素，可能會導致有興趣的觀展者放棄或無法前往觀展。而線上展覽消弭了這種限制，使得看展也能方便、也能無遠弗屆。ARTOGO上的多數展覽是免費的，除了與博物館合作的展覽之外，更有藝術家個展，以及建築設計作品等等可以觀賞。推薦給大家，也期望隨著技術發展及普及，未來藝術與文化的門檻真正能夠被降低乃至抹去。"
+            },
+            {
+                image: "10.png", 
+                title: "報告結束",
+                desc: "我們的報告結束，謝謝大家。",
+                detail: "我們的報告結束，謝謝大家。"
+            }
+        ];
+
+        const IconX = ({ size = 24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
+        const IconCode = ({ size = 24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>;
+        const IconChevronRight = ({ size = 24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>;
+        const IconChevronLeft = ({ size = 24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>;
+
+        const MediaContent = ({ src, alt, className, isDetail = false }) => {
+            const [hasError, setHasError] = useState(false);
+            const isVideo = src.toLowerCase().endsWith('.mp4') || src.toLowerCase().endsWith('.webm');
+
+            if (hasError) {
+                return <div className={`${className} flex items-center justify-center bg-gray-800 text-gray-500 text-xs p-4 text-center`}>檔案未找到<br/>{src}</div>;
+            }
+
+            if (isVideo) {
+                return <video src={src} className={className} autoPlay loop muted playsInline controls={isDetail} onError={() => setHasError(true)} />;
+            }
+            return <img src={src} alt={alt} className={className} loading="lazy" onError={() => setHasError(true)} />;
+        };
+
+        const TunnelGallery = () => {
+            const [hasEntered, setHasEntered] = useState(false);
+            const [isDoorOpen, setIsDoorOpen] = useState(false);
+            const [doorRemoved, setDoorRemoved] = useState(false); 
+            const [showGallery, setShowGallery] = useState(false);
+            const [cameraZ, setCameraZ] = useState(0);
+            const [selectedItem, setSelectedItem] = useState(null);
+            
+            const targetZ = useRef(0);
+            const isDragging = useRef(false);
+            const lastY = useRef(0);
+
+            const SPACING = 700; 
+            const WALL_OFFSET = 450; 
+            const ITEM_COUNT = galleryContent.length; 
+            const START_Z_OFFSET = 350; 
+            const MIN_Z = 1200; 
+            
+            const items = useMemo(() => {
+                let generated = [];
+                // ★★★ 移除顏色陣列 ★★★
+                
+                for (let i = 0; i < ITEM_COUNT; i++) {
+                    const rowIndex = Math.floor(i / 2) + 1; 
+                    const isLeft = i % 2 === 0;
+                    const zPos = -rowIndex * SPACING - START_Z_OFFSET; 
+                    const data = galleryContent[i];
+
+                    generated.push({
+                        id: i,
+                        x: isLeft ? -WALL_OFFSET : WALL_OFFSET,
+                        z: zPos,
+                        rotateY: isLeft ? 25 : -25, 
+                        // ★★★ 移除 borderColors 賦值 ★★★
+                        ...data
+                    });
+                }
+                return generated;
+            }, []);
+
+            const handleEnter = () => {
+                setHasEntered(true);
+                setTimeout(() => { setIsDoorOpen(true); setTimeout(() => { setShowGallery(true); targetZ.current = 1200; setTimeout(() => setDoorRemoved(true), 1500); }, 1500); }, 300);
+            };
+
+            useEffect(() => {
+                let animationFrameId;
+                const animate = () => {
+                    setCameraZ(prev => {
+                        const diff = targetZ.current - prev;
+                        if (Math.abs(diff) < 0.1) return prev;
+                        return prev + diff * 0.08; 
+                    });
+                    animationFrameId = requestAnimationFrame(animate);
+                };
+                animate();
+                return () => cancelAnimationFrame(animationFrameId);
+            }, []);
+
+            const handleWheel = (e) => {
+                if (!showGallery || selectedItem) return;
+                const maxZ = (Math.ceil(ITEM_COUNT / 2 + 1) * SPACING) + START_Z_OFFSET - 200;
+                targetZ.current = Math.min(Math.max(targetZ.current + e.deltaY * 3, MIN_Z), maxZ);
+            };
+
+            const handleMouseDown = (e) => { if (!showGallery || selectedItem) return; isDragging.current = true; lastY.current = e.clientY; };
+            const handleMouseMove = (e) => { if (!showGallery || !isDragging.current || selectedItem) return; e.preventDefault(); const currentY = e.clientY; const deltaY = (lastY.current - currentY) * 3; const maxZ = (Math.ceil(ITEM_COUNT / 2 + 1) * SPACING) + START_Z_OFFSET - 200; targetZ.current = Math.min(Math.max(targetZ.current + deltaY, MIN_Z), maxZ); lastY.current = currentY; };
+            const handleMouseUp = () => { isDragging.current = false; };
+            const handleTouchStart = (e) => { if (!showGallery || selectedItem) return; isDragging.current = true; lastY.current = e.touches[0].clientY; };
+            const handleTouchMove = (e) => { if (!showGallery || !isDragging.current || selectedItem) return; const currentY = e.touches[0].clientY; const deltaY = (lastY.current - currentY) * 4; const maxZ = (Math.ceil(ITEM_COUNT / 2 + 1) * SPACING) + START_Z_OFFSET - 200; targetZ.current = Math.min(Math.max(targetZ.current + deltaY, MIN_Z), maxZ); lastY.current = currentY; };
+
+            const navigateItem = (direction) => {
+                if (!selectedItem) return;
+                const currentIndex = items.findIndex(item => item.id === selectedItem.id);
+                if (currentIndex === -1) return;
+                let newIndex = currentIndex + direction;
+                if (newIndex >= items.length) newIndex = 0;
+                if (newIndex < 0) newIndex = items.length - 1;
+                setSelectedItem(items[newIndex]);
+            };
+
+            return (
+                <div className="relative w-full h-full flex flex-col select-none text-white"
+                    onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleMouseUp}
+                >
+                    <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+                        <div className="absolute inset-0 w-full h-full" style={{ background: 'radial-gradient(circle at center, #808080 0%, #222222 45%, #000000 100%)' }} />
+                        <div className="absolute top-0 left-0 w-full h-[50%]" style={{ background: 'linear-gradient(to bottom, #000000 0%, transparent 100%)', clipPath: 'polygon(0 0, 100% 0, calc(50% + var(--center-w)/2) 100%, calc(50% - var(--center-w)/2) 100%)' }} />
+                        <div className="absolute bottom-0 left-0 w-full h-[50%]" style={{ background: 'linear-gradient(to top, #000000 0%, transparent 100%)', clipPath: 'polygon(0 100%, 100% 100%, calc(50% + var(--center-w)/2) 0, calc(50% - var(--center-w)/2) 0)' }} />
+                        <div className="absolute top-0 left-0 w-[50%] h-full" style={{ background: 'linear-gradient(to right, #000000 0%, transparent 100%)', clipPath: 'polygon(0 0, 0 100%, 100% calc(50% + var(--center-h)/2), 100% calc(50% - var(--center-h)/2))' }} />
+                        <div className="absolute top-0 right-0 w-[50%] h-full" style={{ background: 'linear-gradient(to left, #000000 0%, transparent 100%)', clipPath: 'polygon(100% 0, 100% 100%, 0 calc(50% + var(--center-h)/2), 0 calc(50% - var(--center-h)/2))' }} />
+                    </div>
+
+                    {!doorRemoved && (
+                        <div className={`absolute inset-0 z-50 flex ${isDoorOpen && !doorRemoved ? 'pointer-events-none' : ''}`}>
+                             <div className={`h-full bg-[#0a0a0a] border-r border-white/10 relative z-20 transition-transform duration-[2000ms] ease-[cubic-bezier(0.25,0.1,0.25,1)] will-change-transform flex items-center justify-end ${isDoorOpen ? '-translate-x-full' : 'translate-x-0'}`} style={{ width: '50%' }}>
+                                 <div className="absolute right-8 top-1/2 -translate-y-1/2 w-[1px] h-32 bg-white/20"></div>
+                            </div>
+                            <div className={`h-full bg-[#0a0a0a] border-l border-white/10 relative z-20 transition-transform duration-[2000ms] ease-[cubic-bezier(0.25,0.1,0.25,1)] will-change-transform flex items-center justify-start ${isDoorOpen ? 'translate-x-full' : 'translate-x-0'}`} style={{ width: '50%' }}>
+                                <div className="absolute left-8 top-1/2 -translate-y-1/2 w-[1px] h-32 bg-white/20"></div>
+                            </div>
+                            <div className={`absolute inset-0 z-30 flex items-center justify-center transition-opacity duration-500 ${hasEntered ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                                <button onClick={handleEnter} className="group relative px-8 py-4 bg-transparent overflow-hidden cursor-pointer" style={{ pointerEvents: 'auto' }}>
+                                    <div className="absolute inset-0 w-full h-full border border-white/40 group-hover:border-white transition-colors duration-300" />
+                                    <div className="absolute inset-0 w-0 bg-white transition-all duration-[250ms] ease-out group-hover:w-full opacity-10" />
+                                    <div className="relative flex items-center gap-3 text-white tracking-[0.3em] font-light group-hover:font-normal transition-all"><span>進入展覽</span><IconCode size={16}/></div>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className={`flex-1 w-full flex items-center justify-center perspective-container transition-opacity duration-1000 z-10 ${isDoorOpen ? 'opacity-100' : 'opacity-20'}`}>
+                        <div className="preserve-3d relative w-full h-full" style={{ transform: `translateZ(${cameraZ}px)` }}>
+                            {items.map((item) => {
+                                const relativeZ = item.z + cameraZ;
+                                if (relativeZ < -5000 || relativeZ > 1000) return null;
+                                const opacity = Math.max(0, Math.min(1, (3000 + relativeZ) / 1000));
+                                const isClickable = true; 
+
+                                return (
+                                    <div
+                                        key={item.id}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (isClickable && showGallery) setSelectedItem(item);
+                                        }}
+                                        className={`absolute top-1/2 left-1/2 w-[360px] h-[540px] -mt-[270px] -ml-[180px] transition-all duration-300 group ${isClickable && showGallery ? 'cursor-pointer border-4 border-white/20 card-item' : 'border border-white/20'} ${selectedItem?.id === item.id ? 'opacity-0' : ''}`}
+                                        style={{
+                                            transform: `translate3d(${item.x}px, 0, ${item.z}px) rotateY(${item.rotateY}deg)`,
+                                            opacity: opacity,
+                                            backgroundColor: '#000',
+                                            zIndex: Math.round(relativeZ + 4000)
+                                        }}
+                                    >
+                                        <div className="w-full h-full flex flex-col relative overflow-hidden bg-black">
+                                            <div className={`flex-1 w-full flex flex-col items-center justify-center relative overflow-hidden group-hover:brightness-110 transition-all bg-zinc-900`}>
+                                                <MediaContent src={item.image} alt={item.title} className="absolute inset-0 w-full h-full object-contain z-10 transform group-hover:scale-105 transition-transform duration-700" />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none z-20"></div>
+                                            </div>
+                                            <div className="bg-[#0a0a0a] p-5 border-t border-white/10 h-[100px] flex flex-col justify-center relative z-20">
+                                                {/* ★★★ 移除 color: item.borderColors ★★★ */}
+                                                <h3 className={`font-bold tracking-wider transition-colors truncate text-base leading-tight mb-1 text-white`}>{item.title}</h3>
+                                                <p className="text-xs text-white/50 line-clamp-2 leading-relaxed">{item.desc}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {selectedItem && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setSelectedItem(null)}>
+                            {/* 左側導航按鈕 (固定在螢幕左側) */}
+                            {/* ★★★ 修改：移除 text-cyan-400，改為白色系 hover ★★★ */}
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); navigateItem(-1); }} 
+                                className="absolute left-4 md:left-10 top-1/2 -translate-y-1/2 text-white hover:text-white p-4 nav-btn rounded-full bg-black/50 border border-white/20"
+                                title="上一張"
+                            >
+                                <IconChevronLeft size={48} />
+                            </button>
+
+                            {/* 右側導航按鈕 (固定在螢幕右側) */}
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); navigateItem(1); }} 
+                                className="absolute right-4 md:right-10 top-1/2 -translate-y-1/2 text-white hover:text-white p-4 nav-btn rounded-full bg-black/50 border border-white/20"
+                                title="下一張"
+                            >
+                                <IconChevronRight size={48} />
+                            </button>
+
+                            {/* 卡片內容 */}
+                            <div className="bg-[#111] border border-white/30 w-full max-w-5xl h-[70vh] relative p-1 shadow-2xl flex mx-16" onClick={e => e.stopPropagation()}>
+                                {/* ★★★ 修改：移除 text-cyan-400，改為白色系 hover ★★★ */}
+                                <button onClick={() => setSelectedItem(null)} className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"><IconX size={40} /></button>
+                                
+                                <div className="w-full h-full flex flex-col md:flex-row bg-black overflow-hidden border border-white/10">
+                                    <div className="w-full md:w-1/2 h-1/2 md:h-full relative bg-zinc-900 border-b md:border-b-0 md:border-r border-white/10">
+                                        <MediaContent src={selectedItem.image} className="w-full h-full object-contain" isDetail={true} />
+                                    </div>
+                                    <div className="w-full md:w-1/2 h-1/2 md:h-full p-8 md:p-12 flex flex-col overflow-y-auto">
+                                        {/* ★★★ 移除 color: selectedItem.borderColors ★★★ */}
+                                        <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white">{selectedItem.title}</h2>
+                                        <div className="w-12 h-1 bg-white/20 mb-8"></div>
+                                        <p className="text-white/80 leading-relaxed text-lg mb-8" style={{ whiteSpace: 'pre-line' }}>{selectedItem.detail}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className={`absolute top-0 left-0 w-full p-8 z-50 flex justify-between items-start pointer-events-none transition-all duration-1000 delay-1000 ${isDoorOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10'}`}>
+                        <div><h1 className="text-white text-3xl font-bold tracking-widest uppercase">線上展覽介紹</h1><p className="text-white/50 text-sm mt-2">第八屆MATA獎</p></div>
+                        <div className="text-white/30 text-sm font-mono border border-white/20 px-4 py-2 rounded-full">Step: {Math.round(cameraZ / 100)}</div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<TunnelGallery />);
+    </script>
+</body>
+</html>
